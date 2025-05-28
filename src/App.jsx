@@ -1,8 +1,11 @@
 // App.jsx
 // This is the main React component for your Hospital Management Frontend.
-// It will manage department data and interact with your Flask API.
+// It will manage different sections of the application:
+// Department Management, Patient Management, and Patient Self-Registration.
 
 import React, { useState, useEffect } from 'react';
+import PatientManagement from './PatientManagement'; // Assuming you'll create this component
+import PatientSelfRegistration from './PatientSelfRegistration'; // Assuming you'll create this component
 
 // Main App component
 const App = () => {
@@ -22,6 +25,9 @@ const App = () => {
   const [doctors, setDoctors] = useState([]);
   // State for loading indicators
   const [isLoading, setIsLoading] = useState(false);
+
+  // NEW: State to manage the active view
+  const [activeView, setActiveView] = useState('departments'); // 'departments', 'patients', 'self-register'
 
   // --- API Base URL ---
   // IMPORTANT: Replace with your Render API URL when deployed!
@@ -48,8 +54,11 @@ const App = () => {
       }
     };
 
-    fetchDepartments();
-  }, []); // Empty dependency array means this runs once on mount
+    // Only fetch departments if the active view is 'departments'
+    if (activeView === 'departments') {
+        fetchDepartments();
+    }
+  }, [activeView]); // Re-run when activeView changes
 
   // --- Fetch Doctors for Dropdown ---
   useEffect(() => {
@@ -67,10 +76,11 @@ const App = () => {
       }
     };
 
+    // Fetch doctors regardless of the active view as they might be needed for PatientManagement too
     fetchDoctors();
-  }, []); // Fetch doctors once on component mount
+  }, []); // Fetch doctors once on component mount, they are relatively static
 
-  // --- Handle Form Submission (Add/Update) ---
+  // --- Handle Form Submission (Add/Update Department) ---
   const handleSubmit = async (e) => {
     e.preventDefault(); // Prevent default form submission behavior (page reload)
     setError(null);
@@ -140,7 +150,7 @@ const App = () => {
     }
   };
 
-  // --- Handle Edit Button Click ---
+  // --- Handle Edit Button Click (Department) ---
   const handleEdit = (dept) => {
     setEditingDepartmentId(dept.id);
     setNewDepartmentName(dept.name);
@@ -150,7 +160,7 @@ const App = () => {
     setSuccessMessage(null);
   };
 
-  // --- Handle Cancel Edit Button Click ---
+  // --- Handle Cancel Edit Button Click (Department) ---
   const handleCancelEdit = () => {
     setEditingDepartmentId(null);
     setNewDepartmentName('');
@@ -160,7 +170,7 @@ const App = () => {
     setSuccessMessage(null);
   };
 
-  // --- Handle Delete Button Click ---
+  // --- Handle Delete Button Click (Department) ---
   const handleDelete = async (departmentId) => {
     // Using window.confirm for simplicity, but for a real app, use a custom modal UI
     if (!window.confirm('Are you sure you want to delete this department?')) {
@@ -192,137 +202,171 @@ const App = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 p-4 sm:p-6 lg:p-8 font-sans antialiased">
-      <div className="max-w-4xl mx-auto bg-white p-6 rounded-lg shadow-xl">
+    <div className="min-h-screen p-4 sm:p-6 lg:p-8 font-sans antialiased">
+      <div className="max-w-4xl mx-auto bg-white bg-opacity-90 p-6 rounded-lg shadow-xl">
         <h1 className="text-3xl sm:text-4xl font-bold text-center text-blue-800 mb-8">
-          Hospital Department Management
+          Hospital Management Dashboard
         </h1>
 
-        {/* --- Messages --- */}
-        {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-md relative mb-4" role="alert">
-            <strong className="font-bold">Error!</strong>
-            <span className="block sm:inline"> {error}</span>
-          </div>
-        )}
-        {successMessage && (
-          <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-md relative mb-4" role="alert">
-            <strong className="font-bold">Success!</strong>
-            <span className="block sm:inline"> {successMessage}</span>
-          </div>
-        )}
+        {/* --- Navigation Buttons --- */}
+        <div className="flex justify-center space-x-4 mb-8">
+          <button
+            onClick={() => setActiveView('departments')}
+            className={`py-2 px-4 rounded-md text-lg font-semibold transition duration-300 ${activeView === 'departments' ? 'bg-blue-700 text-white shadow-md' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+          >
+            Department Management
+          </button>
+          <button
+            onClick={() => setActiveView('patients')}
+            className={`py-2 px-4 rounded-md text-lg font-semibold transition duration-300 ${activeView === 'patients' ? 'bg-blue-700 text-white shadow-md' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+          >
+            Patient Management
+          </button>
+          <button
+            onClick={() => setActiveView('self-register')}
+            className={`py-2 px-4 rounded-md text-lg font-semibold transition duration-300 ${activeView === 'self-register' ? 'bg-blue-700 text-white shadow-md' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+          >
+            Patient Self-Registration
+          </button>
+        </div>
 
-        {/* --- Department Form (Add/Update) --- */}
-        <form onSubmit={handleSubmit} className="mb-8 p-6 bg-blue-50 rounded-lg shadow-inner">
-          <h2 className="text-2xl font-semibold text-blue-700 mb-4">
-            {editingDepartmentId ? 'Edit Department' : 'Add New Department'}
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div>
-              <label htmlFor="name" className="block text-gray-700 text-sm font-bold mb-2">
-                Department Name:
-              </label>
-              <input
-                type="text"
-                id="name"
-                className="shadow appearance-none border rounded-md w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                value={newDepartmentName}
-                onChange={(e) => setNewDepartmentName(e.target.value)}
-                required
-                disabled={isLoading}
-              />
-            </div>
-            <div>
-              <label htmlFor="specialty" className="block text-gray-700 text-sm font-bold mb-2">
-                Specialty (Optional):
-              </label>
-              <input
-                type="text"
-                id="specialty"
-                className="shadow appearance-none border rounded-md w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                value={newDepartmentSpecialty}
-                onChange={(e) => setNewDepartmentSpecialty(e.target.value)}
-                disabled={isLoading}
-              />
-            </div>
-          </div>
-          <div className="mb-6">
-            <label htmlFor="headDoctor" className="block text-gray-700 text-sm font-bold mb-2">
-              Head Doctor (Optional):
-            </label>
-            <select
-              id="headDoctor"
-              className="shadow border rounded-md w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              value={newDepartmentHeadDoctorId}
-              onChange={(e) => setNewDepartmentHeadDoctorId(e.target.value)}
-              disabled={isLoading}
-            >
-              <option value="">-- Select a Doctor --</option>
-              {doctors.map(doctor => (
-                <option key={doctor.id} value={doctor.id}>
-                  {doctor.name} ({doctor.specialization})
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
-            <button
-              type="submit"
-              className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-75 transition duration-200 ease-in-out flex items-center justify-center"
-              disabled={isLoading}
-            >
-              {isLoading && <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>}
-              {editingDepartmentId ? 'Update Department' : 'Add Department'}
-            </button>
-            {editingDepartmentId && (
-              <button
-                type="button"
-                onClick={handleCancelEdit}
-                className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-opacity-75 transition duration-200 ease-in-out flex items-center justify-center"
-                disabled={isLoading}
-              >
-                Cancel Edit
-              </button>
+        {/* --- Render Active View --- */}
+        {activeView === 'departments' && (
+          <>
+            {/* --- Messages --- */}
+            {error && (
+              <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-md relative mb-4" role="alert">
+                <strong className="font-bold">Error!</strong>
+                <span className="block sm:inline"> {error}</span>
+              </div>
             )}
-          </div>
-        </form>
+            {successMessage && (
+              <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-md relative mb-4" role="alert">
+                <strong className="font-bold">Success!</strong>
+                <span className="block sm:inline"> {successMessage}</span>
+              </div>
+            )}
 
-        {/* --- Department List --- */}
-        <h2 className="text-2xl font-semibold text-blue-700 mb-4">Existing Departments</h2>
-        {isLoading && !departments.length ? (
-          <div className="text-center text-gray-600 py-8">Loading departments...</div>
-        ) : departments.length === 0 ? (
-          <div className="text-center text-gray-600 py-8">No departments found. Add one above!</div>
-        ) : (
-          <div className="space-y-4">
-            {departments.map((dept) => (
-              <div key={dept.id} className="bg-white p-4 rounded-lg shadow flex flex-col sm:flex-row justify-between items-start sm:items-center">
-                <div className="mb-2 sm:mb-0">
-                  <p className="text-lg font-medium text-gray-900">
-                    <span className="font-bold text-blue-600">ID: {dept.id}</span> - {dept.name}
-                  </p>
-                  <p className="text-sm text-gray-600">Specialty: {dept.specialty || 'N/A'}</p>
-                  <p className="text-sm text-gray-600">Head: {dept.head_doctor_name || 'Unassigned'}</p>
-                  <p className="text-sm text-gray-600">Doctors: {dept.num_doctors}</p>
+            {/* --- Department Form (Add/Update) --- */}
+            <form onSubmit={handleSubmit} className="mb-8 p-6 bg-blue-50 rounded-lg shadow-inner">
+              <h2 className="text-2xl font-semibold text-blue-700 mb-4">
+                {editingDepartmentId ? 'Edit Department' : 'Add New Department'}
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label htmlFor="name" className="block text-gray-700 text-sm font-bold mb-2">
+                    Department Name:
+                  </label>
+                  <input
+                    type="text"
+                    id="name"
+                    className="shadow appearance-none border rounded-md w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    value={newDepartmentName}
+                    onChange={(e) => setNewDepartmentName(e.target.value)}
+                    required
+                    disabled={isLoading}
+                  />
                 </div>
-                <div className="flex space-x-2">
-                  <button
-                    onClick={() => handleEdit(dept)}
-                    className="bg-yellow-500 hover:bg-yellow-600 text-white text-sm py-1 px-3 rounded-md transition duration-200"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleDelete(dept.id)}
-                    className="bg-red-500 hover:bg-red-600 text-white text-sm py-1 px-3 rounded-md transition duration-200"
-                  >
-                    Delete
-                  </button>
+                <div>
+                  <label htmlFor="specialty" className="block text-gray-700 text-sm font-bold mb-2">
+                    Specialty (Optional):
+                  </label>
+                  <input
+                    type="text"
+                    id="specialty"
+                    className="shadow appearance-none border rounded-md w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    value={newDepartmentSpecialty}
+                    onChange={(e) => setNewDepartmentSpecialty(e.target.value)}
+                    disabled={isLoading}
+                  />
                 </div>
               </div>
-            ))}
-          </div>
+              <div className="mb-6">
+                <label htmlFor="headDoctor" className="block text-gray-700 text-sm font-bold mb-2">
+                  Head Doctor (Optional):
+                </label>
+                <select
+                  id="headDoctor"
+                  className="shadow appearance-none border rounded-md w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  value={newDepartmentHeadDoctorId}
+                  onChange={(e) => setNewDepartmentHeadDoctorId(e.target.value)}
+                  disabled={isLoading}
+                >
+                  <option value="">-- Select a Doctor --</option>
+                  {doctors.map(doctor => (
+                    <option key={doctor.id} value={doctor.id}>
+                      {doctor.name} ({doctor.specialization})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
+                <button
+                  type="submit"
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-75 transition duration-200 ease-in-out flex items-center justify-center"
+                  disabled={isLoading}
+                >
+                  {isLoading && <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>}
+                  {editingDepartmentId ? 'Update Department' : 'Add Department'}
+                </button>
+                {editingDepartmentId && (
+                  <button
+                    type="button"
+                    onClick={handleCancelEdit}
+                    className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-opacity-75 transition duration-200 ease-in-out flex items-center justify-center"
+                    disabled={isLoading}
+                  >
+                    Cancel Edit
+                  </button>
+                )}
+              </div>
+            </form>
+
+            {/* --- Department List --- */}
+            <h2 className="text-2xl font-semibold text-blue-700 mb-4">Existing Departments</h2>
+            {isLoading && !departments.length ? (
+              <div className="text-center text-gray-600 py-8">Loading departments...</div>
+            ) : departments.length === 0 ? (
+              <div className="text-center text-gray-600 py-8">No departments found. Add one above!</div>
+            ) : (
+              <div className="space-y-4">
+                {departments.map((dept) => (
+                  <div key={dept.id} className="bg-white p-4 rounded-lg shadow flex flex-col sm:flex-row justify-between items-start sm:items-center">
+                    <div className="mb-2 sm:mb-0">
+                      <p className="text-lg font-medium text-gray-900">
+                        <span className="font-bold text-blue-600">ID: {dept.id}</span> - {dept.name}
+                      </p>
+                      <p className="text-sm text-gray-600">Specialty: {dept.specialty || 'N/A'}</p>
+                      <p className="text-sm text-gray-600">Head: {dept.head_doctor_name || 'Unassigned'}</p>
+                      <p className="text-sm text-gray-600">Doctors: {dept.num_doctors_in_dept}</p>
+                      <p className="text-sm text-gray-600">Patients Assigned: {dept.num_patients_assigned}</p>
+                    </div>
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => handleEdit(dept)}
+                        className="bg-yellow-500 hover:bg-yellow-600 text-white text-sm py-1 px-3 rounded-md transition duration-200"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDelete(dept.id)}
+                        className="bg-red-500 hover:bg-red-600 text-white text-sm py-1 px-3 rounded-md transition duration-200"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
         )}
+
+        {/* Render Patient Management component when activeView is 'patients' */}
+        {activeView === 'patients' && <PatientManagement doctors={doctors} departments={departments} apiBaseUrl={API_BASE_URL} />}
+
+        {/* Render Patient Self-Registration component when activeView is 'self-register' */}
+        {activeView === 'self-register' && <PatientSelfRegistration apiBaseUrl={API_BASE_URL} />}
       </div>
     </div>
   );
